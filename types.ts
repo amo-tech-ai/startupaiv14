@@ -33,6 +33,7 @@ export interface Task {
   priority: Priority;
   completed: boolean;
   category: string;
+  dependencies?: string[]; // Array of Task IDs that must be completed first
 }
 
 export type ContactType = 'investor' | 'customer' | 'partner';
@@ -54,6 +55,7 @@ export interface Project {
   progress: number;
   deadline: string;
   description: string;
+  healthScore?: number; // AI-generated health score 0-100
 }
 
 export interface DiscoveryResult {
