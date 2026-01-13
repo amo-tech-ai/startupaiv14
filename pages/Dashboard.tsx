@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import ThreePanelLayout from '../components/ThreePanelLayout';
 import { StartupProfile, Task, AIInsight } from '../types';
@@ -29,9 +28,6 @@ const Dashboard: React.FC<DashboardProps> = ({ profile, tasks }) => {
   }, [profile, tasks]);
 
   const priorities = tasks.filter(t => !t.completed).slice(0, 3);
-  const fundraisingProgress = profile.fundraisingGoal > 0 
-    ? Math.min(Math.round((profile.revenue / (profile.fundraisingGoal / 100)) * 10), 100) 
-    : 0;
 
   return (
     <ThreePanelLayout
@@ -56,134 +52,220 @@ const Dashboard: React.FC<DashboardProps> = ({ profile, tasks }) => {
         </div>
       }
       mainPanel={
-        <div className="space-y-16">
-          {/* NBA Hero Section */}
-          <section className="bg-stone-900 text-white p-12 border border-stone-900 relative group overflow-hidden">
-            <div className="absolute top-0 right-0 p-8 opacity-10">
-              <div className="w-32 h-32 border-4 border-white rotate-45"></div>
-            </div>
-            <div className="relative z-10">
-              <div className="flex items-center gap-4 mb-8">
-                <span className={`px-2 py-0.5 text-[8px] font-bold uppercase tracking-widest border border-white/20 ${nba?.urgency === 'high' ? 'bg-rose-500 border-rose-500' : ''}`}>
-                  Strategic Priority #1
-                </span>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-stone-400">Next Best Action</span>
+        <div className="space-y-12">
+          {/* Header Section */}
+          <div className="flex justify-between items-start">
+            <div className="space-y-2">
+              <h2 className="text-4xl font-serif font-bold text-stone-900">{profile.name || "My Startup"}</h2>
+              <p className="text-stone-400 font-serif italic text-sm">{profile.tagline || "Your tagline goes here"}</p>
+              <div className="flex gap-4 pt-2">
+                <Badge icon="🏢" label={profile.industry || "Tech"} />
+                <Badge icon="📍" label="Remote" />
+                <Badge icon="👥" label="1 Employees" />
               </div>
-              <h3 className="text-4xl font-serif font-bold mb-4">
-                {loading ? "Calculating Next Step..." : nba?.title}
-              </h3>
-              <p className="text-stone-400 text-sm max-w-xl font-serif italic leading-relaxed">
-                {loading ? "Running strategic inference across your dataset..." : nba?.reason}
-              </p>
-              <button className="mt-10 px-10 py-4 bg-white text-stone-900 text-[10px] font-bold uppercase tracking-[0.2em] hover:bg-stone-100 transition-all">
-                Execute Action
+            </div>
+            <div className="flex gap-3">
+              <button className="px-5 py-2.5 border border-stone-200 text-stone-600 text-[10px] font-bold uppercase tracking-widest hover:border-stone-900 transition-colors">Edit Profile</button>
+              <button className="px-5 py-2.5 bg-stone-900 text-white text-[10px] font-bold uppercase tracking-widest hover:bg-stone-800 transition-colors">Share Profile</button>
+            </div>
+          </div>
+
+          {/* NBA Hero Card */}
+          <section className="bg-stone-900 text-white p-10 border border-stone-900 relative group overflow-hidden rounded-sm">
+            <div className="flex items-center justify-between relative z-10">
+              <div className="flex items-center gap-6">
+                <div className="w-10 h-10 border border-white/20 flex items-center justify-center rotate-45">
+                   <div className="w-1.5 h-1.5 bg-white -rotate-45"></div>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-1">Next Best Action</p>
+                  <h3 className="text-xl font-serif font-bold">{loading ? "Calculating..." : nba?.title}</h3>
+                  <p className="text-[11px] text-stone-400 font-serif italic mt-1 max-w-lg">{loading ? "Reading context..." : nba?.reason}</p>
+                </div>
+              </div>
+              <button className="px-8 py-3 bg-white text-stone-900 text-[10px] font-bold uppercase tracking-widest hover:bg-stone-100 transition-all">
+                Execute
               </button>
             </div>
           </section>
 
-          {/* Today's Priorities */}
-          <section>
-            <div className="flex justify-between items-baseline mb-8">
-              <h3 className="text-2xl font-serif font-bold text-stone-900 tracking-tight">Focus Backlog</h3>
-              <span className="text-[10px] text-stone-400 font-bold uppercase tracking-widest">Active Sprint</span>
-            </div>
-            <div className="space-y-px bg-stone-200 border border-stone-200">
-              {priorities.map(task => (
-                <div key={task.id} className="group flex items-center p-8 bg-white hover:bg-stone-50 transition-colors">
-                  <div className={`w-0.5 h-12 mr-8 ${task.priority === 'high' ? 'bg-rose-500' : 'bg-stone-300'}`}></div>
-                  <div className="flex-1">
-                    <p className="text-lg font-serif text-stone-900">{task.title}</p>
-                    <p className="text-[10px] text-stone-400 mt-2 uppercase tracking-widest font-bold">{task.category}</p>
-                  </div>
-                  <button className="text-[10px] font-bold uppercase tracking-[0.2em] text-stone-300 group-hover:text-stone-900 transition-colors">Mark Complete</button>
-                </div>
-              ))}
-            </div>
-          </section>
+          {/* Operational Metrics Grid */}
+          <div className="grid grid-cols-4 gap-4">
+            <MetricCard label="MRR" value={`$${profile.revenue}`} delta="+12%" />
+            <MetricCard label="Active Users" value={profile.users.toString()} delta="+5%" />
+            <MetricCard label="Runway" value={`${profile.runway} Mo`} delta="-1 Mo" deltaColor="text-rose-600" />
+            <MetricCard label="Profile Score" value={`${profile.readinessScore || 20}%`} delta="Improving" deltaColor="text-stone-400" />
+          </div>
 
-          {/* Key Metrics */}
+          {/* Active Workflows */}
           <section>
-            <h3 className="text-2xl font-serif font-bold text-stone-900 tracking-tight mb-8">Operational Vitals</h3>
-            <div className="grid grid-cols-3 gap-px bg-stone-200 border border-stone-200">
-              <DashboardMetric label="Monthly Revenue" value={`$${profile.revenue.toLocaleString()}`} delta={profile.growthRate > 0 ? `+${profile.growthRate}%` : '0%'} />
-              <DashboardMetric label="Active Base" value={profile.users.toLocaleString()} delta="+2.4%" />
-              <DashboardMetric label="Burn Rate" value={`$${Math.round(profile.revenue / 2).toLocaleString()}`} delta="Stable" />
+            <div className="flex justify-between items-baseline mb-6">
+              <h3 className="text-lg font-serif font-bold text-stone-900">Active Workflows</h3>
+              <button className="text-[10px] text-stone-400 font-bold uppercase tracking-widest hover:text-stone-900">View All</button>
             </div>
-          </section>
-
-          {/* Fundraising Viz */}
-          <section className="bg-stone-100 p-12 border border-stone-200 relative overflow-hidden">
-            <div className="relative z-10">
-              <div className="flex justify-between items-end mb-6">
-                <div>
-                  <h3 className="text-2xl font-serif font-bold text-stone-900">Capital Momentum</h3>
-                  <p className="text-stone-500 text-sm mt-1 font-serif italic">Targeting ${profile.fundraisingGoal.toLocaleString()} Seed Round</p>
-                </div>
-                <span className="text-3xl font-serif font-bold text-stone-900">{fundraisingProgress}%</span>
-              </div>
-              <div className="h-1 bg-stone-300 w-full overflow-hidden">
-                <div 
-                  className="h-full bg-stone-900 transition-all duration-1000 ease-out" 
-                  style={{ width: `${fundraisingProgress}%` }}
-                ></div>
+            <div className="grid grid-cols-2 gap-4">
+              <WorkflowCard 
+                title="Fundraising Workflow" 
+                desc="Get ready to pitch investors. Generates tasks, pitch deck, and updates."
+                status="In Progress"
+                statusColor="bg-amber-100 text-amber-600"
+                icon="📈"
+              />
+              <WorkflowCard 
+                title="GTM Workflow" 
+                desc="Launch your product with channel strategy, messaging, and ICP analysis."
+                status="Pending"
+                statusColor="bg-stone-100 text-stone-400"
+                icon="🚀"
+              />
+              <WorkflowCard 
+                title="Product Roadmap" 
+                desc="Define features, prioritization, and milestone planning."
+                status="Not Started"
+                statusColor="bg-stone-100 text-stone-400"
+                icon="⚡"
+              />
+              <div className="border-2 border-dashed border-stone-200 p-8 flex flex-col items-center justify-center group hover:border-stone-900 transition-colors cursor-pointer">
+                <span className="text-2xl text-stone-200 group-hover:text-stone-900 mb-2">+</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-stone-300 group-hover:text-stone-900">Add Workflow</span>
               </div>
             </div>
           </section>
+
+          {/* Materials & Team Availability */}
+          <div className="grid grid-cols-2 gap-4">
+            <section className="p-8 bg-white border border-stone-200">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-sm font-serif font-bold text-stone-900 flex items-center gap-2">
+                  📄 Pitch Materials
+                </h3>
+                <span className="text-stone-300">...</span>
+              </div>
+              <div className="space-y-4">
+                <FileItem name="Series A Deck.pdf" date="2d ago" size="2.4 MB" />
+                <FileItem name="Financial Model v3.xlsx" date="5d ago" size="1.1 MB" />
+                <FileItem name="One Pager.pdf" date="1w ago" size="800 KB" />
+                <button className="w-full mt-4 py-2 text-[10px] font-bold uppercase tracking-widest border border-stone-100 hover:border-stone-900 transition-colors">View Data Room</button>
+              </div>
+            </section>
+            
+            <section className="p-8 bg-white border border-stone-200 flex flex-col items-center justify-center text-center">
+              <div className="flex justify-between items-center w-full mb-auto">
+                <h3 className="text-sm font-serif font-bold text-stone-900 flex items-center gap-2">
+                  👥 Team Availability
+                </h3>
+              </div>
+              <div className="mb-auto py-12">
+                <p className="text-xs text-stone-400 font-serif italic">Manage Team Access</p>
+              </div>
+            </section>
+          </div>
         </div>
       }
       rightPanel={
-        loading ? (
-          <div className="space-y-12 animate-pulse">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="space-y-3">
-                <div className="h-2 w-20 bg-stone-200"></div>
-                <div className="h-20 bg-stone-100"></div>
-              </div>
-            ))}
+        <div className="space-y-10">
+          <div className="flex items-center gap-3">
+             <div className="p-2 bg-stone-100 border border-stone-200">
+               <span className="text-sm">✨</span>
+             </div>
+             <div>
+               <h3 className="text-[11px] font-bold uppercase tracking-widest text-stone-900">AI Coach</h3>
+               <p className="text-[9px] text-stone-400 uppercase font-bold">Strategic Insights</p>
+             </div>
           </div>
-        ) : (
-          <>
+
+          <div className="space-y-8">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-4">What does this mean?</p>
-              <p className="text-sm leading-relaxed text-stone-800 font-serif italic border-l-2 border-stone-200 pl-4 py-1">
-                "{insight?.meaning}"
-              </p>
-            </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-4">What should I do next?</p>
-              <div className="p-6 bg-white border border-stone-200">
-                <p className="text-sm leading-relaxed text-stone-800 font-medium font-serif">
-                  {insight?.action}
-                </p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-stone-900 mb-4">Focus Area</p>
+              <div className="p-6 bg-white border border-stone-200 rounded-sm">
+                 <p className="text-xs font-serif italic text-stone-700 leading-relaxed">
+                   "{insight?.meaning || "Complete your profile to get AI insights."}"
+                 </p>
+                 <div className="flex items-center gap-2 mt-4 text-stone-900">
+                   <span className="text-xs">⚡</span>
+                   <span className="text-[10px] font-bold uppercase tracking-widest">High Impact Opportunity</span>
+                 </div>
               </div>
             </div>
+
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-4">Why does this matter now?</p>
-              <p className="text-xs leading-relaxed text-stone-600 bg-stone-100 p-6 font-serif leading-relaxed italic">
-                {insight?.urgency}
-              </p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-stone-900 mb-4">Risk Radar</p>
+              <p className="text-xs font-serif text-stone-500 italic">No critical risks detected.</p>
             </div>
-          </>
-        )
+
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-stone-900 mb-4">Suggested Steps</p>
+              <div className="space-y-3">
+                {priorities.map(task => (
+                  <div key={task.id} className="flex items-start gap-3 group cursor-pointer">
+                    <div className="w-3.5 h-3.5 border border-stone-200 mt-0.5 group-hover:border-stone-900"></div>
+                    <span className="text-xs font-serif text-stone-600 group-hover:text-stone-900">{task.title}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <button className="w-full py-3 bg-white border border-stone-200 text-stone-900 text-[10px] font-bold uppercase tracking-widest hover:border-stone-900 transition-colors mt-auto">
+            Generate Full Report
+          </button>
+        </div>
       }
     />
   );
 };
 
+const MetricCard: React.FC<{ label: string, value: string, delta: string, deltaColor?: string }> = ({ label, value, delta, deltaColor = "text-emerald-600" }) => (
+  <div className="bg-white p-6 border border-stone-200">
+    <p className="text-[9px] font-bold uppercase tracking-widest text-stone-400 mb-4">{label}</p>
+    <div className="flex justify-between items-end">
+      <p className="text-2xl font-serif font-bold text-stone-900">{value}</p>
+      <span className={`text-[9px] font-bold uppercase bg-stone-50 px-1.5 py-0.5 border border-stone-100 ${deltaColor}`}>{delta}</span>
+    </div>
+  </div>
+);
+
+const WorkflowCard: React.FC<{ title: string, desc: string, status: string, statusColor: string, icon: string }> = ({ title, desc, status, statusColor, icon }) => (
+  <div className="p-6 bg-white border border-stone-200 hover:border-stone-900 transition-all cursor-pointer group">
+    <div className="flex items-start gap-4">
+      <div className="w-10 h-10 bg-stone-50 border border-stone-100 flex items-center justify-center text-lg grayscale group-hover:grayscale-0 transition-all">
+        {icon}
+      </div>
+      <div className="flex-1">
+        <div className="flex justify-between items-center mb-1">
+          <h4 className="text-xs font-serif font-bold text-stone-900">{title}</h4>
+          <span className={`text-[8px] font-bold uppercase px-2 py-0.5 rounded-sm ${statusColor}`}>{status}</span>
+        </div>
+        <p className="text-[10px] text-stone-400 font-serif leading-relaxed line-clamp-2">{desc}</p>
+      </div>
+      <span className="text-stone-200 group-hover:text-stone-900 transition-colors">→</span>
+    </div>
+  </div>
+);
+
+const FileItem: React.FC<{ name: string, date: string, size: string }> = ({ name, date, size }) => (
+  <div className="flex items-center gap-4 group cursor-pointer">
+    <div className="w-8 h-8 bg-stone-50 border border-stone-100 flex items-center justify-center text-stone-400 group-hover:text-stone-900 transition-colors">
+      📄
+    </div>
+    <div className="flex-1">
+      <p className="text-xs font-serif font-bold text-stone-700 group-hover:text-stone-900">{name}</p>
+      <p className="text-[9px] text-stone-400 uppercase font-bold">{date} • {size}</p>
+    </div>
+  </div>
+);
+
+const Badge: React.FC<{ icon: string, label: string }> = ({ icon, label }) => (
+  <div className="flex items-center gap-2 px-3 py-1 bg-stone-100/50 border border-stone-200 rounded-sm">
+    <span className="text-[10px] grayscale">{icon}</span>
+    <span className="text-[9px] font-bold uppercase text-stone-500">{label}</span>
+  </div>
+);
+
 const MiniMilestone: React.FC<{ label: string, completed: boolean }> = ({ label, completed }) => (
   <div className="flex items-center gap-3">
     <div className={`w-2.5 h-2.5 rounded-full border border-stone-300 ${completed ? 'bg-stone-900 border-stone-900' : 'bg-transparent'}`}></div>
     <span className={`text-[10px] font-bold uppercase tracking-tight ${completed ? 'text-stone-900' : 'text-stone-400'}`}>{label}</span>
-  </div>
-);
-
-const DashboardMetric: React.FC<{ label: string, value: string, delta: string }> = ({ label, value, delta }) => (
-  <div className="bg-white p-10">
-    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-stone-400 mb-6">{label}</p>
-    <p className="text-3xl font-serif font-bold text-stone-900 mb-2 tracking-tight">{value}</p>
-    <p className={`text-[10px] font-bold uppercase tracking-widest ${delta.startsWith('+') ? 'text-emerald-600' : 'text-stone-400'}`}>
-      {delta} Trend
-    </p>
   </div>
 );
 

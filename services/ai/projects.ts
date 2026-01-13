@@ -17,7 +17,7 @@ export const getProjectAnalysis = async (projects: Project[]): Promise<{ globalH
   Return a JSON object with:
   - globalHealth: Overall execution score (0-100).
   - insights: 3 high-level strategic findings.
-  - projectScores: A mapping of project IDs to individual health scores (0-100).`;
+  - projectScores: A list of objects containing projectId and their individual health scores (0-100).`;
 
   try {
     const response = await ai.models.generateContent({
@@ -31,15 +31,37 @@ export const getProjectAnalysis = async (projects: Project[]): Promise<{ globalH
             globalHealth: { type: Type.NUMBER },
             insights: { type: Type.ARRAY, items: { type: Type.STRING } },
             projectScores: { 
-              type: Type.OBJECT,
-              additionalProperties: { type: Type.NUMBER }
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  projectId: { type: Type.STRING, description: "The ID of the project" },
+                  score: { type: Type.NUMBER, description: "Health score from 0-100" }
+                },
+                required: ["projectId", "score"]
+              }
             }
           },
           required: ["globalHealth", "insights", "projectScores"]
         }
       }
     });
-    return JSON.parse(response.text || '{"globalHealth": 100, "insights": [], "projectScores": {}}');
+
+    const data = JSON.parse(response.text || '{"globalHealth": 100, "insights": [], "projectScores": []}');
+    
+    // Transform array back to Record<string, number> for the app
+    const scoresRecord: Record<string, number> = {};
+    if (Array.isArray(data.projectScores)) {
+      data.projectScores.forEach((item: { projectId: string; score: number }) => {
+        scoresRecord[item.projectId] = item.score;
+      });
+    }
+
+    return {
+      globalHealth: data.globalHealth,
+      insights: data.insights,
+      projectScores: scoresRecord
+    };
   } catch (error) {
     console.error("AI Project Analysis Error:", error);
     return { globalHealth: 50, insights: ["Analysis offline."], projectScores: {} };
@@ -50,11 +72,12 @@ export const getProjectAnalysis = async (projects: Project[]): Promise<{ globalH
  * Suggests new tasks based on project description and progress.
  */
 export const suggestProjectTasks = async (project: Project): Promise<Partial<Task>[]> => {
-  const prompt = `Suggest 3 high-impact, actionable tasks for this project:
-  Name: ${project.name}
-  Description: ${project.description}
-  Current Progress: ${project.progress}%
+  const prompt = `Act as a senior operations lead. Suggest 3 high-impact, actionable tasks to advance this specific project:
+  Project Name: ${project.name}
+  Project Intent: ${project.description}
+  Current Progress: ${project.progress}% Complete
   
+  Your suggestions must be highly contextual to the description and the current stage of completion.
   Return a JSON array of tasks with 'title', 'priority' (low/medium/high), and 'category'.`;
 
   try {

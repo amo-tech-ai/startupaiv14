@@ -8,13 +8,18 @@ import Tasks from './pages/Tasks';
 import Documents from './pages/Documents';
 import Discovery from './pages/Discovery';
 import Projects from './pages/Projects';
-import { StartupProfile, Task, Contact } from './types';
+import UserProfile from './pages/UserProfile';
+import CompanyProfile from './pages/CompanyProfile';
+import LeanCanvas from './pages/LeanCanvas';
+import { StartupProfile, Task, Contact, UserProfile as UserProfileType } from './types';
 
 interface RouterProps {
   profile: StartupProfile;
+  user: UserProfileType;
   tasks: Task[];
   contacts: Contact[];
   updateProfile: (data: Partial<StartupProfile>) => void;
+  updateUser: (data: Partial<UserProfileType>) => void;
   setTasks: (tasks: Task[]) => void;
   setContacts: React.Dispatch<React.SetStateAction<Contact[]>>;
   updateTasks: React.Dispatch<React.SetStateAction<Task[]>>;
@@ -22,9 +27,11 @@ interface RouterProps {
 
 export const createStartupRouter = ({
   profile,
+  user,
   tasks,
   contacts,
   updateProfile,
+  updateUser,
   setTasks,
   setContacts,
   updateTasks
@@ -58,11 +65,11 @@ export const createStartupRouter = ({
       },
       {
         path: 'crm',
-        element: <CRM contacts={contacts} setContacts={setContacts} />
+        element: <CRM contacts={contacts} setContacts={setContacts} profile={profile} setTasks={updateTasks} />
       },
       {
         path: 'projects',
-        element: <Projects />
+        element: <Projects setTasks={updateTasks} />
       },
       {
         path: 'tasks',
@@ -71,6 +78,18 @@ export const createStartupRouter = ({
       {
         path: 'documents',
         element: <Documents profile={profile} />
+      },
+      {
+        path: 'lean-canvas',
+        element: <LeanCanvas profile={profile} updateProfile={updateProfile} />
+      },
+      {
+        path: 'profile',
+        element: <UserProfile user={user} updateUser={updateUser} />
+      },
+      {
+        path: 'company-profile',
+        element: <CompanyProfile profile={profile} updateProfile={updateProfile} />
       },
       {
         index: true,

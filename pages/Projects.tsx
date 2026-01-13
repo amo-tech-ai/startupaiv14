@@ -1,235 +1,233 @@
 import React, { useState, useEffect } from 'react';
 import ThreePanelLayout from '../components/ThreePanelLayout';
-import { Project, Task } from '../types';
+import { Project, Task, Priority } from '../types';
 import { getProjectAnalysis, suggestProjectTasks } from '../services/gemini';
 
-const Projects: React.FC = () => {
+interface ProjectsProps {
+  setTasks?: React.Dispatch<React.SetStateAction<Task[]>>;
+}
+
+const Projects: React.FC<ProjectsProps> = ({ setTasks }) => {
   const [projects, setProjects] = useState<Project[]>([
-    { id: '1', name: 'GTM Strategy Phase 1', status: 'active', progress: 65, deadline: '2023-12-01', description: 'Early customer acquisition channel testing through LinkedIn and specialized forums.' },
-    { id: '2', name: 'Series A Deck Refinement', status: 'active', progress: 40, deadline: '2023-11-15', description: 'Storytelling audit, updating financial models, and data visualization enhancements.' },
-    { id: '3', name: 'Product MVP Audit', status: 'stalled', progress: 85, deadline: '2023-10-30', description: 'Comprehensive performance, security, and accessibility review prior to launch.' }
+    { id: '1', name: 'Seed Fundraising Sprint', status: 'active', progress: 45, deadline: 'Apr 15', description: 'Outreach' },
+    { id: '2', name: 'MVP v1 Build', status: 'active', progress: 62, deadline: 'Mar 01', description: 'Development' },
+    { id: '3', name: 'Q1 GTM Launch', status: 'active', progress: 15, deadline: 'May 20', description: 'Strategy' },
+    { id: '4', name: 'Investor Pipeline Expansion', status: 'completed', progress: 100, deadline: 'Feb 10', description: 'Done' },
+    { id: '5', name: 'Legal Incorporation & IP', status: 'active', progress: 80, deadline: 'Feb 28', description: 'Review' }
   ]);
+
   const [analysis, setAnalysis] = useState<{ globalHealth: number, insights: string[], projectScores: Record<string, number> } | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [suggestedTasks, setSuggestedTasks] = useState<Partial<Task>[]>([]);
-  const [suggesting, setSuggesting] = useState(false);
 
   useEffect(() => {
     const fetchAnalysis = async () => {
       setLoading(true);
       const data = await getProjectAnalysis(projects);
       setAnalysis(data);
-      
-      // Map AI scores back to project state
-      setProjects(prev => prev.map(p => ({
-        ...p,
-        healthScore: data.projectScores[p.id] || p.healthScore
-      })));
-      
       setLoading(false);
     };
     fetchAnalysis();
   }, []);
 
-  const handleSuggestTasks = async () => {
-    if (!selectedProject) return;
-    setSuggesting(true);
-    const tasks = await suggestProjectTasks(selectedProject);
-    setSuggestedTasks(tasks);
-    setSuggesting(false);
-  };
-
-  const getHealthColor = (score: number | undefined) => {
-    if (score === undefined) return 'text-stone-400 border-stone-200';
-    if (score >= 80) return 'text-emerald-600 border-emerald-200 bg-emerald-50';
-    if (score >= 50) return 'text-amber-600 border-amber-200 bg-amber-50';
-    return 'text-rose-600 border-rose-200 bg-rose-50';
-  };
-
   return (
     <ThreePanelLayout
-      title="Projects"
+      title="Project Overview"
       leftPanel={
         <div className="space-y-8">
           <div>
-            <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-4">Execution Health</p>
-            <div className="text-4xl font-serif font-bold text-stone-900">{analysis?.globalHealth || 0}%</div>
-            <p className="text-[10px] font-bold uppercase mt-1 text-emerald-600">Global Alignment</p>
+            <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-6">Initiatives</p>
+            <div className="space-y-2">
+              <button className="block w-full text-left text-xs font-bold text-stone-900 border-l-2 border-stone-900 pl-4 -ml-4 transition-all">All Projects</button>
+              <button className="block w-full text-left text-xs text-stone-400 hover:text-stone-900 pl-4 -ml-4 border-l-2 border-transparent transition-all">Internal</button>
+              <button className="block w-full text-left text-xs text-stone-400 hover:text-stone-900 pl-4 -ml-4 border-l-2 border-transparent transition-all">External</button>
+            </div>
           </div>
-          <div className="space-y-2">
-            <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Filters</p>
-            <button className="block text-xs font-bold text-stone-900 underline underline-offset-4 decoration-stone-200">All Initiatives</button>
-            <button className="block text-xs text-stone-400 hover:text-stone-900 transition-colors">Internal Ops</button>
-            <button className="block text-xs text-stone-400 hover:text-stone-900 transition-colors">Customer Facing</button>
+          <div className="p-6 bg-stone-100 border border-stone-200">
+            <h4 className="text-[10px] font-bold text-stone-900 uppercase tracking-widest mb-3">Resource Load</h4>
+            <p className="text-xs leading-relaxed text-stone-600 font-serif italic">
+              "Developer bandwidth is at 85% capacity. Suggest deferring Phase 2 tasks until GTM launch is stabilized."
+            </p>
           </div>
         </div>
       }
       mainPanel={
-        <div className="space-y-12">
-          <div className="grid grid-cols-1 gap-px bg-stone-200 border border-stone-200">
-            {projects.map(proj => (
-              <div 
-                key={proj.id} 
-                onClick={() => {
-                  setSelectedProject(proj);
-                  setSuggestedTasks([]);
-                }}
-                className="p-10 bg-white group hover:bg-stone-50 transition-colors cursor-pointer relative overflow-hidden"
-              >
-                {proj.healthScore !== undefined && (
-                  <div className={`absolute top-0 right-0 px-4 py-2 border-l border-b text-[10px] font-bold tracking-widest uppercase transition-colors ${getHealthColor(proj.healthScore)}`}>
-                    Health: {proj.healthScore}
-                  </div>
-                )}
-                
-                <div className="flex justify-between items-start mb-6">
-                  <div>
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className={`w-1.5 h-1.5 rounded-full ${proj.status === 'active' ? 'bg-emerald-500' : 'bg-rose-500'}`}></div>
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-stone-400">{proj.status}</span>
-                    </div>
-                    <h4 className="text-3xl font-serif font-bold text-stone-900">{proj.name}</h4>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xl font-serif font-bold text-stone-900">{proj.progress}%</p>
-                    <p className="text-[10px] font-bold uppercase text-stone-400">Complete</p>
-                  </div>
-                </div>
-                <div className="h-0.5 bg-stone-100 w-full mb-8 overflow-hidden">
-                  <div className="h-full bg-stone-900 transition-all duration-1000" style={{ width: `${proj.progress}%` }}></div>
-                </div>
-                <div className="flex justify-between items-center">
-                  <p className="text-sm font-serif italic text-stone-500 truncate max-w-md">{proj.description}</p>
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-stone-300 group-hover:text-stone-900 transition-colors">Deadline: {proj.deadline}</span>
-                </div>
-              </div>
-            ))}
+        <div className="space-y-10">
+          {/* Top Actions */}
+          <div className="flex justify-between items-center mb-4">
+             <p className="text-sm text-stone-400 font-serif italic">Manage your initiatives, deadlines, and deliverables.</p>
+             <div className="flex gap-2">
+               <button className="px-4 py-2 border border-stone-200 text-[10px] font-bold uppercase tracking-widest hover:border-stone-900">Filter</button>
+               <button className="px-4 py-2 bg-stone-900 text-white text-[10px] font-bold uppercase tracking-widest hover:bg-stone-800">+ New Project</button>
+             </div>
           </div>
 
-          {/* Project Detail Modal */}
-          {selectedProject && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-300">
-              <div className="bg-white border border-stone-200 w-full max-w-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-500 shadow-2xl">
-                <div className="p-8 border-b border-stone-200 flex justify-between items-start">
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                       <span className="text-[10px] font-bold uppercase tracking-widest text-stone-400">Project Detail</span>
-                       <span className={`px-2 py-0.5 text-[8px] font-bold uppercase tracking-widest border border-stone-200 ${selectedProject.status === 'active' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                         {selectedProject.status}
-                       </span>
-                    </div>
-                    <h3 className="text-4xl font-serif font-bold text-stone-900">{selectedProject.name}</h3>
-                  </div>
-                  <button 
-                    onClick={() => setSelectedProject(null)}
-                    className="text-stone-300 hover:text-stone-900 transition-colors p-2"
-                  >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                  </button>
-                </div>
-                
-                <div className="p-8 space-y-8 overflow-y-auto max-h-[70vh]">
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-2">Description</p>
-                    <p className="text-lg font-serif text-stone-700 leading-relaxed italic">"{selectedProject.description}"</p>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-8 border-y border-stone-100 py-6">
-                    <div>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-2">Deadline</p>
-                      <p className="text-xl font-serif font-bold text-stone-900">{selectedProject.deadline}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-2">Completion</p>
-                      <p className="text-xl font-serif font-bold text-stone-900">{selectedProject.progress}%</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-2">AI Health</p>
-                      <p className={`text-xl font-serif font-bold ${getHealthColor(selectedProject.healthScore).split(' ')[0]}`}>
-                        {selectedProject.healthScore || '??'} / 100
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="pt-8">
-                    <div className="flex justify-between items-center mb-6">
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-stone-900">Strategic Task Suggestions</p>
-                      <button 
-                        disabled={suggesting}
-                        onClick={handleSuggestTasks}
-                        className="text-[10px] font-bold uppercase tracking-widest bg-stone-900 text-white px-4 py-2 hover:bg-stone-800 disabled:opacity-50 transition-all flex items-center gap-2"
-                      >
-                        {suggesting && <div className="w-2 h-2 border border-white border-t-transparent rounded-full animate-spin"></div>}
-                        {suggesting ? "Analyzing Roadmap..." : "Generate AI Tasks"}
-                      </button>
-                    </div>
-
-                    {suggestedTasks.length > 0 ? (
-                      <div className="space-y-3">
-                        {suggestedTasks.map((t, i) => (
-                          <div key={i} className="p-4 bg-stone-50 border border-stone-100 flex justify-between items-center group hover:border-stone-200 transition-colors">
-                            <div>
-                              <p className="text-sm font-serif text-stone-900">{t.title}</p>
-                              <p className="text-[9px] font-bold uppercase tracking-widest text-stone-400 mt-1">{t.category} • {t.priority} priority</p>
-                            </div>
-                            <button className="text-[10px] font-bold uppercase tracking-widest text-stone-300 group-hover:text-stone-900 transition-colors">Add to Backlog +</button>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="py-8 text-center border border-dashed border-stone-200 bg-stone-50/50">
-                        <p className="text-xs font-serif text-stone-400 italic">Generate AI-driven tasks to accelerate this project.</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="p-6 bg-stone-50 border-t border-stone-200 text-right">
-                  <button 
-                    onClick={() => setSelectedProject(null)}
-                    className="px-8 py-3 text-[10px] font-bold uppercase tracking-widest border border-stone-200 text-stone-400 hover:border-stone-900 hover:text-stone-900 transition-all"
-                  >
-                    Close Project Console
-                  </button>
-                </div>
-              </div>
+          {/* View Toggles & Search */}
+          <div className="flex justify-between items-center">
+            <div className="flex bg-stone-100 p-1 border border-stone-200 rounded-sm">
+              <button className="px-4 py-1.5 text-[9px] font-bold uppercase tracking-widest bg-white text-stone-900 shadow-sm">List View</button>
+              <button className="px-4 py-1.5 text-[9px] font-bold uppercase tracking-widest text-stone-400 hover:text-stone-900">Timeline</button>
             </div>
-          )}
+            <div className="relative w-64">
+              <input 
+                type="text" 
+                placeholder="Search projects..."
+                className="w-full pl-8 pr-4 py-2 bg-white border border-stone-200 text-[10px] font-bold uppercase tracking-widest focus:outline-none focus:border-stone-900"
+              />
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-300">🔍</span>
+            </div>
+          </div>
+
+          {/* Metric Row */}
+          <div className="grid grid-cols-4 gap-4">
+            <SummaryCard label="Overall Completion" value="64%" delta="+8%" />
+            <SummaryCard label="Active Projects" value="6" delta="On track" deltaColor="text-stone-400" />
+            <SummaryCard label="Milestones Risk" value="3" delta="+2 this week" deltaColor="text-rose-600" />
+            <SummaryCard label="Tasks Completed" value="128" delta="+12%" />
+          </div>
+
+          {/* Project List */}
+          <div className="space-y-6">
+            <div className="flex justify-between items-baseline border-b border-stone-200 pb-4">
+               <div className="flex items-center gap-3">
+                 <h3 className="text-lg font-serif font-bold text-stone-900">Active Projects</h3>
+                 <span className="text-[10px] font-bold bg-stone-100 text-stone-500 px-2 py-0.5 rounded-full">{projects.length}</span>
+               </div>
+               <button className="text-[9px] font-bold uppercase text-stone-400 hover:text-stone-900 transition-all">Sort by Status ↓</button>
+            </div>
+
+            <div className="space-y-px bg-stone-200 border border-stone-200">
+              {projects.map(proj => (
+                <div 
+                  key={proj.id}
+                  onClick={() => setSelectedProject(proj)}
+                  className="bg-white p-8 group hover:bg-stone-50 transition-all cursor-pointer flex items-center gap-8"
+                >
+                  <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${proj.progress === 100 ? 'bg-emerald-500' : proj.progress < 30 ? 'bg-amber-500' : 'bg-rose-500'}`}></div>
+                  
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-1">
+                      <h4 className="text-lg font-serif font-bold text-stone-900">{proj.name}</h4>
+                      <span className="text-[8px] font-bold uppercase px-2 py-0.5 border border-stone-100 bg-stone-50 text-stone-400">{proj.description}</span>
+                    </div>
+                    <div className="flex gap-4 items-center">
+                       <p className="text-[9px] font-bold text-stone-300 uppercase tracking-widest">📅 {proj.deadline}</p>
+                       <p className="text-[9px] font-bold text-stone-300 uppercase tracking-widest italic">• 2h ago</p>
+                    </div>
+                  </div>
+
+                  <div className="w-64">
+                    <div className="flex justify-between text-[9px] font-bold uppercase text-stone-400 mb-2">
+                      <span>Progress</span>
+                      <span>{proj.progress}%</span>
+                    </div>
+                    <div className="h-1 bg-stone-100 w-full overflow-hidden">
+                      <div 
+                        className={`h-full transition-all duration-1000 ${proj.progress === 100 ? 'bg-stone-900' : 'bg-stone-400'}`} 
+                        style={{ width: `${proj.progress}%` }}
+                      ></div>
+                    </div>
+                  </div>
+
+                  <div className="flex -space-x-2 shrink-0">
+                    <Avatar label="A S" />
+                    <Avatar label="M D" />
+                  </div>
+
+                  <span className="text-stone-200 group-hover:text-stone-900 transition-all">→</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       }
       rightPanel={
-        loading ? (
-          <div className="space-y-12 animate-pulse">
-            <div className="h-4 w-24 bg-stone-200"></div>
-            <div className="h-32 bg-stone-100"></div>
-            <div className="h-32 bg-stone-100"></div>
-          </div>
-        ) : (
-          <div className="space-y-12">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-6">Strategic Risk Audit</p>
-              <div className="space-y-8">
-                {analysis?.insights.map((insight, idx) => (
-                  <div key={idx} className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 border border-stone-900 rotate-45"></div>
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-stone-900">Insight {idx + 1}</span>
-                    </div>
-                    <p className="text-sm font-serif leading-relaxed text-stone-800 italic border-l border-stone-200 pl-4 py-1">"{insight}"</p>
-                  </div>
-                ))}
+        <div className="space-y-10">
+          {/* AI Coach Alerts */}
+          <div className="space-y-4">
+            <div className="flex justify-between items-center mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-4 h-4 border border-stone-900 rotate-45 flex items-center justify-center">
+                  <div className="w-1 h-1 bg-stone-900"></div>
+                </div>
+                <h3 className="text-[11px] font-bold uppercase tracking-widest text-stone-900">AI Coach</h3>
               </div>
+              <span className="text-[9px] font-bold uppercase bg-stone-100 text-stone-500 px-2 py-0.5">3 New</span>
             </div>
-            <div className="p-6 bg-stone-900 text-white border border-stone-800">
-              <p className="text-[10px] font-bold uppercase tracking-widest mb-2 opacity-50">Operational Protocol</p>
-              <p className="text-xs font-serif leading-relaxed italic">"Execution health below 60% indicates a potential bottleneck in decision speed. Review stalled items immediately."</p>
-            </div>
+
+            <AlertItem 
+              icon="⚠️"
+              title="Timeline Risk Detected"
+              desc="4 tasks in 'MVP Build' are overdue. Consider extending the sprint by 1 week."
+            />
+            <AlertItem 
+              icon="📄"
+              title="Missing Financials"
+              desc="Your Pitch Deck is missing a 'Financial Projections' slide."
+            />
+            <AlertItem 
+              icon="👤"
+              title="Investor Follow-up"
+              desc="3 investors haven't replied in 7 days."
+            />
+
+            <button className="w-full py-2 text-[9px] font-bold uppercase tracking-widest text-stone-400 hover:text-stone-900 transition-all border-t border-stone-100 pt-6">View All Insights →</button>
           </div>
-        )
+
+          {/* Quick Actions Grid */}
+          <div className="space-y-6 pt-10 border-t border-stone-200">
+             <h3 className="text-[11px] font-bold uppercase tracking-widest text-stone-900">Quick Actions</h3>
+             <div className="grid grid-cols-2 gap-3">
+                <ActionBox icon="+" label="New Project" />
+                <ActionBox icon="🚀" label="GTM Plan" />
+                <ActionBox icon="📊" label="Pitch Deck" />
+                <ActionBox icon="💬" label="Ask AI" />
+             </div>
+          </div>
+        </div>
       }
     />
   );
 };
+
+const SummaryCard: React.FC<{ label: string, value: string, delta: string, deltaColor?: string }> = ({ label, value, delta, deltaColor = "text-emerald-600" }) => (
+  <div className="bg-white p-6 border border-stone-200">
+    <div className="flex justify-between items-start mb-4">
+      <p className="text-[9px] font-bold uppercase tracking-widest text-stone-400">{label}</p>
+      <div className="w-6 h-6 border border-stone-100 rotate-45 flex items-center justify-center">
+        <div className="w-1 h-1 bg-stone-200 -rotate-45"></div>
+      </div>
+    </div>
+    <div className="flex justify-between items-end">
+      <p className="text-2xl font-serif font-bold text-stone-900">{value}</p>
+      <span className={`text-[9px] font-bold uppercase ${deltaColor}`}>{delta}</span>
+    </div>
+  </div>
+);
+
+const AlertItem: React.FC<{ icon: string, title: string, desc: string }> = ({ icon, title, desc }) => (
+  <div className="p-6 bg-white border border-stone-200 group hover:border-stone-900 transition-all cursor-pointer">
+    <div className="flex gap-4">
+      <div className="text-xl grayscale group-hover:grayscale-0 transition-all">{icon}</div>
+      <div>
+        <h4 className="text-[10px] font-bold uppercase tracking-widest text-stone-900 mb-1">{title}</h4>
+        <p className="text-[10px] text-stone-500 font-serif leading-relaxed italic line-clamp-2">"{desc}"</p>
+      </div>
+    </div>
+  </div>
+);
+
+const ActionBox: React.FC<{ icon: string, label: string }> = ({ icon, label }) => (
+  <button className="aspect-square flex flex-col items-center justify-center bg-white border border-stone-200 hover:border-stone-900 group transition-all">
+    <span className="text-xl mb-3 grayscale group-hover:grayscale-0 transition-all">{icon}</span>
+    <span className="text-[9px] font-bold uppercase tracking-widest text-stone-400 group-hover:text-stone-900">{label}</span>
+  </button>
+);
+
+const Avatar: React.FC<{ label: string }> = ({ label }) => (
+  <div className="w-8 h-8 rounded-full bg-stone-100 border-2 border-white flex items-center justify-center text-[9px] font-bold text-stone-400">
+    {label}
+  </div>
+);
 
 export default Projects;
